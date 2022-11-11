@@ -21,8 +21,8 @@ internal class UserTestHelper @Autowired constructor(
     ): UserEntity {
         return userRepository.save(
             UserEntity(
-                email,
                 username,
+                email,
                 passwordEncoder.encode(password),
                 null,
                 null,
@@ -40,8 +40,8 @@ internal class UserTestHelper @Autowired constructor(
     ): UserEntity {
         return userRepository.save(
             UserEntity(
-                email,
                 username,
+                email,
                 passwordEncoder.encode(password),
                 InstructorProfileEntity(company, year as Int?),
                 null,
@@ -59,8 +59,8 @@ internal class UserTestHelper @Autowired constructor(
     ): UserEntity {
         return userRepository.save(
             UserEntity(
-                email,
                 username,
+                email,
                 passwordEncoder.encode(password),
                 null,
                 ParticipantProfileEntity(isActive, university),
