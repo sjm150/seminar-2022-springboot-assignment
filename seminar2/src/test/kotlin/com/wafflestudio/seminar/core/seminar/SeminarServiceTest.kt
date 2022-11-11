@@ -59,8 +59,9 @@ internal class SeminarServiceTest @Autowired constructor(
         userTestHelper.createInstructor(email)
     }
     
-    fun givenDefaultCreatedSeminar() {
-        seminarTestHelper.createSeminar(name = seminarName, instructor = userTestHelper.createInstructor(email))
+    fun givenDefaultCreatedSeminar(): Long {
+        val seminar =  seminarTestHelper.createSeminar(name = seminarName, instructor = userTestHelper.createInstructor(email))
+        return seminar.id
     }
     
     fun givenServletRequestReturnsEmail() {
@@ -72,6 +73,7 @@ internal class SeminarServiceTest @Autowired constructor(
     @Transactional
     fun `진행자가 수강생으로 등록 성공`() {
         // given
+        givenDefaultCreatedInstructor()
         val request = RegisterParticipantRequest(null, null)
         givenServletRequestReturnsEmail()
         
@@ -87,7 +89,6 @@ internal class SeminarServiceTest @Autowired constructor(
     @Transactional
     fun `세미나 개설 성공`() {
         // given
-        val seminarName = "seminarname"
         givenDefaultCreatedInstructor()
         val request = createSeminarRequest(seminarName, 40, 6, "10:00")
         givenServletRequestReturnsEmail()
@@ -124,6 +125,7 @@ internal class SeminarServiceTest @Autowired constructor(
         assertThat(exception2.status).isEqualTo(HttpStatus.BAD_REQUEST)
     }
     
+    // FIXME: Handle 되지 않아 Internal error로 발생
     @Test
     @Transactional
     fun `세미나 개설 실패 - 유효하지 않은 시간 형식`() {
@@ -190,14 +192,14 @@ internal class SeminarServiceTest @Autowired constructor(
     @Transactional
     fun `세미나 참여하기`() {
         // given
-        givenDefaultCreatedSeminar()
+        val seminarId = givenDefaultCreatedSeminar()
         val email2 = "another@email.com"
         userTestHelper.createParticipant(email2)
         given(httpServletRequest.getAttribute("email")).willReturn(email2)
         val request = RegisterSeminarRequest("participants")
         
         // when
-        val result = seminarService.registerSeminar(httpServletRequest, 1L, request)
+        val result = seminarService.registerSeminar(httpServletRequest, seminarId, request)
         
         // then
         assertThat(result.name).isEqualTo(seminarName)
@@ -210,14 +212,14 @@ internal class SeminarServiceTest @Autowired constructor(
     @Transactional
     fun `세미나 함께 진행하기`() {
         // given
-        givenDefaultCreatedSeminar()
+        val seminarId = givenDefaultCreatedSeminar()
         val email2 = "another@email.com"
         userTestHelper.createInstructor(email2)
         given(httpServletRequest.getAttribute("email")).willReturn(email2)
         val request = RegisterSeminarRequest("instructors")
 
         // when
-        val result = seminarService.registerSeminar(httpServletRequest, 1L, request)
+        val result = seminarService.registerSeminar(httpServletRequest, seminarId, request)
 
         // then
         assertThat(result.name).isEqualTo(seminarName)
@@ -229,21 +231,21 @@ internal class SeminarServiceTest @Autowired constructor(
     @Transactional
     fun `세미나 드랍하기`() {
         // given
-        givenDefaultCreatedSeminar()
+        val seminarId = givenDefaultCreatedSeminar()
         val email2 = "anothre@email.com"
         val user = userTestHelper.createParticipant(email2)
         given(httpServletRequest.getAttribute("email")).willReturn(email2)
         
         val participantRequest = RegisterSeminarRequest("participants")
-        seminarService.registerSeminar(httpServletRequest, 1L, participantRequest)
+        seminarService.registerSeminar(httpServletRequest, seminarId, participantRequest)
         
         // when
-        val result = seminarService.dropSeminar(httpServletRequest, 1L)
+        val result = seminarService.dropSeminar(httpServletRequest, seminarId)
         val exception = assertThrows<SeminarException> {
-            seminarService.registerSeminar(httpServletRequest, 1L, participantRequest)
+            seminarService.registerSeminar(httpServletRequest, seminarId, participantRequest)
         }
         
-        val seminar = seminarRepository.findByIdOrNull(1L)!!
+        val seminar = seminarRepository.findByIdOrNull(seminarId)!!
         val seminarUser = seminarUserRepository.findByUserAndSeminar(user, seminar)
         
         // then

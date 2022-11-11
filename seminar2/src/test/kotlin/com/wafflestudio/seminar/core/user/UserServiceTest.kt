@@ -142,7 +142,7 @@ internal class UserServiceTest @Autowired constructor(
         
         // when
         val exception = assertThrows<SeminarException> {
-            authService.getProfile(2, httpServletRequest)
+            authService.getProfile(0, httpServletRequest)
         }
         
         // then
