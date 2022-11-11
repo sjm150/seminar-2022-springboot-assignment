@@ -133,6 +133,7 @@ internal class UserServiceTest @Autowired constructor(
         assertThat(result.email).isEqualTo(email)
     }
     
+    // TODO: Internal Server Error 발생, Error handling 필요
     @Test
     @Transactional
     fun `유저 정보 조회 실패 - 존재하지 않는 유저`() {
