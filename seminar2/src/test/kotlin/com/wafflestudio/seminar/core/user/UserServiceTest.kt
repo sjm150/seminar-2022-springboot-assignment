@@ -31,6 +31,10 @@ internal class UserServiceTest @Autowired constructor(
     @MockBean
     private lateinit var authTokenService: AuthTokenService
     
+    private val email = "example@email.com"
+    private val password = "secret"
+    private val httpServletRequest = mock(HttpServletRequest::class.java)
+    
     @BeforeEach
     fun cleanRepository() {
         userRepository.deleteAll()
@@ -40,11 +44,22 @@ internal class UserServiceTest @Autowired constructor(
         given(authTokenService.generateTokenByUsername(anyString())).willReturn(AuthToken("AUTH_TOKEN"))
     }
     
+    fun givenDefaultCreatedParticipant() {
+        userTestHelper.createParticipant(email, "default", password)
+    }
+    
+    fun givenDefaultCreatedInstructor() {
+        userTestHelper.createInstructor(email, "default", password)
+    }
+    
+    fun givenServletRequestReturnEmail() {
+        given(httpServletRequest.getAttribute("email")).willReturn(email)
+    }
+    
     @Test
     fun `회원가입 성공`() {
         // given
         givenMockToken()
-        val email = "example@email.com"
         val request = SignUpRequest(email, "", "", "PARTICIPANT", null, null, null, null)
 
         // when
@@ -59,8 +74,7 @@ internal class UserServiceTest @Autowired constructor(
     @Test
     fun `회원가입 실패 - 중복 이메일`() {
         // given
-        val email = "example@email.com"
-        userTestHelper.createParticipant(email, "", "")
+        givenDefaultCreatedParticipant()
         val request = SignUpRequest(email, "", "", "PARTICIPANT", null, null, null, null)
 
         // when
@@ -76,9 +90,7 @@ internal class UserServiceTest @Autowired constructor(
     fun `로그인 성공`() {
         // given
         givenMockToken()
-        val email = "example@email.com"
-        val password = "secret"
-        userTestHelper.createParticipant(email, "", password)
+        givenDefaultCreatedParticipant()
         val request = LoginRequest(email, password)
         
         // when
@@ -92,9 +104,7 @@ internal class UserServiceTest @Autowired constructor(
     fun `로그인 실패 - 잘못된 비밀번호`() {
         // given
         givenMockToken()
-        val email = "example@email.com"
-        val password = "secret"
-        userTestHelper.createParticipant(email, "", password)
+        givenDefaultCreatedParticipant()
         val request = LoginRequest(email, "")
 
         // when
@@ -112,13 +122,12 @@ internal class UserServiceTest @Autowired constructor(
     @Transactional
     fun `유저 정보 조회 성공`() {
         // given
-        val email = "example@email.com"
-        userTestHelper.createParticipant(email, "", "")
+        givenDefaultCreatedParticipant()
+        val userId = userRepository.findByEmail(email)!!.id
         // FIXME: 사용하지 않는 HttpServletRequest?
-        val httpServletRequest: HttpServletRequest = mock(HttpServletRequest::class.java)
         
         // when
-        val result = authService.getProfile(1, httpServletRequest)
+        val result = authService.getProfile(userId, httpServletRequest)
         
         // then
         assertThat(result.email).isEqualTo(email)
@@ -128,9 +137,7 @@ internal class UserServiceTest @Autowired constructor(
     @Transactional
     fun `유저 정보 조회 실패 - 존재하지 않는 유저`() {
         // given
-        val email = "example@email.com"
-        userTestHelper.createParticipant(email, "", "")
-        val httpServletRequest = mock(HttpServletRequest::class.java)
+        givenDefaultCreatedParticipant()
         
         // when
         val exception = assertThrows<SeminarException> {
@@ -145,13 +152,11 @@ internal class UserServiceTest @Autowired constructor(
     @Transactional
     fun `유저 정보 수정 성공`() {
         // given
-        val email = "example@email.com"
-        userTestHelper.createParticipant(email, "", "")
+        givenDefaultCreatedParticipant()
         val university = "university"
         val name = "name"
         val request = EditProfileRequest(university, "company", 1, name)
-        val httpServletRequest = mock(HttpServletRequest::class.java)
-        given(httpServletRequest.getAttribute("email")).willReturn(email)
+        givenServletRequestReturnEmail()
         
         // when
         val result = authService.editProfile(httpServletRequest, request)
@@ -167,11 +172,9 @@ internal class UserServiceTest @Autowired constructor(
     @Transactional
     fun `유저 정보 수정 실패 - year 값이 음수`() {
         // given
-        val email = "example@email.com"
-        userTestHelper.createInstructor(email, "", "")
+        givenDefaultCreatedInstructor()
         val request = EditProfileRequest("university", "company", -1, "name")
-        val httpServletRequest = mock(HttpServletRequest::class.java)
-        given(httpServletRequest.getAttribute("email")).willReturn(email)
+        givenServletRequestReturnEmail()
 
         // when
         val exception = assertThrows<SeminarException> {
